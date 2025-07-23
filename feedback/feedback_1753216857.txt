@@ -1,0 +1,4 @@
+Query: battery storage market
+Feedback: Great analysis but need more financial projections
+Type: improvement
+Timestamp: 2025-07-22T20:40:57.846954

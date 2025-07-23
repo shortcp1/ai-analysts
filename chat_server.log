@@ -1,0 +1,9 @@
+🌐 Starting AI Analyst Server with Strategic Summary Extraction...
+ * Serving Flask app 'google_chat_server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://138.197.125.240:8000
+[33mPress CTRL+C to quit[0m
+100.27.244.188 - - [22/Jul/2025 20:49:13] "POST /slack HTTP/1.1" 200 -
