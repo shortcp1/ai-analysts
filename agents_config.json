@@ -1,0 +1,29 @@
+{
+    "manager": {
+        "role": "Engagement Manager",
+        "style": "High level",
+        "questions_to_ask": 2,
+        "goal": "",
+        "backstory": ""
+    },
+    "researcher": {
+        "role": "",
+        "goal": "",
+        "backstory": ""
+    },
+    "data_engineer": {
+        "role": "",
+        "goal": "",
+        "backstory": ""
+    },
+    "viz_analyst": {
+        "role": "",
+        "goal": "",
+        "backstory": ""
+    },
+    "consultant": {
+        "role": "",
+        "goal": "",
+        "backstory": ""
+    }
+}

@@ -1,7 +1,8 @@
 from crewai import Agent
 from crewai.tools import BaseTool
+from langchain_openai import ChatOpenAI
 from tools.weaviate_search import search_memory
-from tools.weaviate_write import store_memory  
+from tools.weaviate_write import store_memory
 from tools.perplexity_search import research_topic
 from tools.hex_analysis import run_data_analysis
 from tools.token_estimator import estimate_costs
@@ -19,8 +20,8 @@ class WeaviateWriteTool(BaseTool):
     name: str = "store_memory" 
     description: str = "Store important information in the agent's memory for future reference"
     
-    def _run(self, content: str, memory_type: str = "general") -> str:
-        return str(store_memory(content, memory_type))
+    def _run(self, content: str, memory_type: str = "general", metadata: dict = None) -> str:
+        return str(store_memory(content, memory_type, metadata))
 
 class PerplexityTool(BaseTool):
     name: str = "research_topic"
@@ -52,18 +53,12 @@ token_estimator = TokenEstimatorTool()
 
 # Define agents
 def create_agents():
-    # Set up LLM configurations
-    claude_config = {
-        "model": "claude-3-sonnet-20240229",
-        "base_url": "https://api.anthropic.com",
-        "api_key": os.getenv("ANTHROPIC_API_KEY")
-    }
-    
-    openai_config = {
-        "model": "gpt-4",
-        "base_url": "https://api.openai.com/v1", 
-        "api_key": os.getenv("OPENAI_API_KEY")
-    }
+    # Set up LLM
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0,
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
     
     manager = Agent(
         role='Engagement Manager',
@@ -71,18 +66,20 @@ def create_agents():
         backstory="""You are an experienced engagement manager at a top-tier consulting firm.
         You interview clients, understand their real needs, define clear scope, estimate costs,
         and ensure projects deliver value. You ask sharp, executive-level questions.""",
-        tools=[weaviate_search, token_estimator],
+        tools=[token_estimator],
+        llm=llm,
         verbose=True,
         allow_delegation=False
     )
     
     consultant = Agent(
-        role='Strategy Consultant', 
+        role='Strategy Consultant',
         goal='Provide strategic insights and synthesize findings into executive recommendations',
         backstory="""You are a senior strategy consultant with 10+ years experience.
-        You excel at structured problem-solving, creating compelling narratives, and 
+        You excel at structured problem-solving, creating compelling narratives, and
         presenting complex analysis in clear, actionable recommendations.""",
         tools=[weaviate_search, weaviate_write],
+        llm=llm,
         verbose=True
     )
     
@@ -93,6 +90,7 @@ def create_agents():
         You use multiple sources, validate information, and always provide citations.
         You excel at finding market data, competitive intelligence, and trends.""",
         tools=[perplexity_search, weaviate_write],
+        llm=llm,
         verbose=True
     )
     
@@ -100,9 +98,10 @@ def create_agents():
         role='Data Engineer',
         goal='Find, clean, and prepare datasets for analysis',
         backstory="""You are a data engineer who finds public datasets, cleans data,
-        and prepares it for analysis. You write clean Python code and work with 
+        and prepares it for analysis. You write clean Python code and work with
         APIs, CSVs, and various data sources.""",
         tools=[hex_analysis, weaviate_write],
+        llm=llm,
         verbose=True
     )
     
@@ -113,6 +112,7 @@ def create_agents():
         stories through charts and dashboards. You specialize in executive-friendly
         visuals that clearly communicate insights.""",
         tools=[hex_analysis, weaviate_write],
+        llm=llm,
         verbose=True
     )
     
