@@ -21,61 +21,59 @@ interactive_manager = InteractiveManager()
 # ===============================
 
 def handle_approval(text, user_id):
+    """Handle the 'approve' command, run the analysis, and send the results."""
     try:
-        print(f"Approval received from {user_id}: {text}")
-        
-        # Debug: Check conversation state
-        print(f"DEBUG: Checking conversations for user {user_id}")
-        if user_id in interactive_manager.conversations:
-            context = interactive_manager.conversations[user_id]
-            print(f"DEBUG: Found conversation, state: {context.state.value}")
-        else:
-            print(f"DEBUG: No conversation found for user {user_id}")
-            print(f"DEBUG: Available conversations: {list(interactive_manager.conversations.keys())}")
-        
-        # Check if this user has an active conversation and is ready to execute
+        logging.info(f"Approval received from {user_id}: {text}")
+
+        # Check conversation state
+        if user_id not in interactive_manager.conversations:
+            logging.warning(f"No conversation found for user {user_id} to approve.")
+            send_to_slack("⚠️ No active conversation to approve. Please start a new analysis.", user_id)
+            return
+
+        context = interactive_manager.conversations[user_id]
+        logging.info(f"Found conversation for user {user_id}, state: {context.state.value}")
+
         if interactive_manager.is_ready_to_execute(user_id):
-            # Get the final scope from the conversation
             final_scope = interactive_manager.get_final_scope(user_id)
-            
-            print(f"Deploying team with scope: {final_scope}")
-            
-            # Send confirmation message
+            logging.info(f"Deploying team with scope: {final_scope}")
+
+            # Send confirmation that analysis is starting
             send_to_slack(
-                f":white_check_mark: *Approval Confirmed* :white_check_mark:\n"
-                f"• *User*: <@{user_id}>\n"
-                f"• *Scope*: {final_scope}\n\n"
-                f"Starting analysis now..."
+                f":hourglass_flowing_sand: *Analysis in Progress...*\n"
+                f"Thanks for your approval, <@{user_id}>! Our team is now analyzing the following scope:\n"
+                f"> _{final_scope}_\n\n"
+                "This may take a few minutes. I'll send the full report here once it's complete.",
+                user_id
             )
-            
-            # Deploy the analyst crew with the refined scope
+
+            # Deploy the analyst crew
             crew = AnalystCrew()
             result = crew.run_remaining_analysis(final_scope, "Scope approved by client")
+
+            # Format and send final report
+            formatted_result = (
+                f":tada: *Analysis Complete & Delivered!* :tada:\n"
+                f"<@{user_id}>, here is the full report for your request:\n\n"
+                f"*Final Scope:*\n> {final_scope}\n\n"
+                f"*Research Findings & Strategic Recommendations:*\n{result}\n\n"
+                "This conversation is now complete. You can start a new analysis at any time."
+            )
+            send_to_slack(formatted_result, user_id)
             
             # Clean up the conversation
             interactive_manager.reset_conversation(user_id)
-            
-            # Format and send final results
-            formatted_result = (
-                f":tada: *Analysis Complete* :tada:\n"
-                f"• *Scope*: {final_scope}\n"
-                f"• *Requested by*: <@{user_id}>\n\n"
-                f"*Results*:\n{result}\n\n"
-                f"_This conversation has been archived. Start a new one anytime!_"
-            )
-            send_to_slack(formatted_result)
-            
+            logging.info(f"Successfully completed and archived conversation for user {user_id}.")
+
         else:
-            # Handle as a continuation of the conversation
-            print(f"DEBUG: Handling as continuation for user {user_id}")
+            # If not ready to execute, treat as a normal message
+            logging.info(f"Handling '{text}' as a continuation for user {user_id}")
             response = interactive_manager.continue_conversation(user_id, text)
-            print(f"DEBUG: Response from continue_conversation: {response}")
-            send_to_slack(f"💼 {response}")
-        logging.info(f"Approval handled for user {user_id}. New state: {context.state.value}")
-        
+            send_to_slack(f"💼 {response}", user_id)
+
     except Exception as e:
-        print(f"❌ Error during approval handling: {e}")
-        send_to_slack(f"🔥 Error processing approval: {e}")
+        logging.error(f"❌ Error during approval handling for user {user_id}: {e}", exc_info=True)
+        send_to_slack(f"🔥 An error occurred while processing your approval: {e}. Please try again.", user_id)
 
 def handle_interactive_conversation(text, user_id):
     try:
@@ -113,102 +111,113 @@ def handle_legacy_analysis_request(text):
 # Slack main endpoint
 # ===============================
 
-@app.route('/slack', methods=['POST'])
-def slack_command():
-    """Main Slack command handler with interactive conversation support"""
+def process_slack_command(data):
+    """Processes the slack command in a separate thread."""
     try:
-        # Slack URL verification challenge
-        # Log incoming request details for debugging
-        logging.info("="*50)
-        logging.info(f"REQUEST RECEIVED: {request.method} {request.url}")
-        logging.info(f"HEADERS: {request.headers}")
-        logging.info(f"MIMETYPE: {request.mimetype}")
-        raw_data = request.get_data(as_text=True)
-        logging.info(f"RAW BODY: {raw_data}")
-        logging.info("="*50)
-
-        if request.is_json:
-            json_data = request.get_json()
-            if "challenge" in json_data:
-                print(f"Received Slack challenge: {json_data['challenge']}")
-                return jsonify({"challenge": json_data["challenge"]})
-
-            # Handle Slack Events API
-            if "event" in json_data:
-                event = json_data["event"]
-                # Avoid processing bot's own messages
-                if event.get("subtype") == "bot_message":
-                    return jsonify({"status": "ok, bot message ignored"})
-
-                if event["type"] == "message":
-                    user_id = event.get("user")
-                    text = event.get("text", "").strip()
-
-                    # Ignore messages without user or text (e.g., file uploads)
-                    if not user_id or not text:
-                        return jsonify({"status": "ok, message without user or text ignored"})
-
-                    thread = threading.Thread(target=handle_interactive_conversation, args=(text, user_id))
-                    thread.daemon = True
-                    thread.start()
-                    return jsonify({"status": "ok, event processed"})
-
-        data = request.form
         user_name = data.get('user_name', 'unknown')
-        user_id = data.get('user_id', user_name)  # Use user_id for conversation tracking
+        user_id = data.get('user_id', user_name)
         text = data.get('text', '').strip()
 
-        print(f"Parsed command from {user_name} ({user_id}): '{text}'")
-        logging.info(f"Received message from {user_name} ({user_id}): {text}")
+        logging.info(f"Processing command from {user_name} ({user_id}): '{text}'")
 
-        # Handle special commands
         if text.startswith('approve'):
-            thread = threading.Thread(target=handle_approval, args=(text, user_id))
-            thread.daemon = True
-            thread.start()
-            return jsonify({"text": "✅ Processing your approval..."})
-        
+            handle_approval(text, user_id)
         elif text.startswith('reset'):
             interactive_manager.reset_conversation(user_id)
-            return jsonify({"text": "🔄 Conversation reset. You can start a new project discussion."})
-        
+            send_to_slack("🔄 Conversation reset. You can start a new project discussion.", user_id)
         elif text.startswith('status'):
             if user_id in interactive_manager.conversations:
                 state = interactive_manager.conversations[user_id].state.value
-                return jsonify({"text": f"📊 Current conversation state: {state}"})
+                send_to_slack(f"📊 Current conversation state: {state}", user_id)
             else:
-                return jsonify({"text": "📊 No active conversation. Start by describing your business question."})
-        
+                send_to_slack("📊 No active conversation. Start by describing your business question.", user_id)
         elif text.startswith('legacy'):
-            # Legacy mode for direct analysis
             legacy_text = text.replace('legacy', '').strip()
             if legacy_text:
-                thread = threading.Thread(target=handle_legacy_analysis_request, args=(legacy_text,))
-                thread.daemon = True
-                thread.start()
-                return jsonify({"text": f"🚀 Legacy analysis mode: {legacy_text}. Running direct analysis..."})
+                handle_legacy_analysis_request(legacy_text)
             else:
-                return jsonify({"text": "⚠️ Please provide a topic for legacy analysis."})
-        
+                send_to_slack("⚠️ Please provide a topic for legacy analysis.", user_id)
         elif text:
-            # Interactive conversation mode (default)
+            handle_interactive_conversation(text, user_id)
+        else:
+            send_to_slack(
+                "⚠️ Please provide your business question or use:\n" +
+                "• `reset` - Start a new conversation\n" +
+                "• `status` - Check conversation status\n" +
+                "• `legacy [topic]` - Run direct analysis\n" +
+                "• `approve` - Approve current proposal",
+                user_id
+            )
+    except Exception as e:
+        logging.error(f"❌ Error processing Slack command: {e}")
+        try:
+            send_to_slack(f"❌ An error occurred: {str(e)}", user_id)
+        except Exception as send_e:
+            logging.error(f"❌ Failed to send error message to Slack: {send_e}")
+
+@app.route('/slack', methods=['POST'])
+def slack_command():
+    """Main Slack command handler with interactive conversation support"""
+    # Log incoming request details for debugging
+    logging.info("="*50)
+    logging.info(f"REQUEST RECEIVED: {request.method} {request.url}")
+    logging.info(f"HEADERS: {request.headers}")
+    logging.info(f"MIMETYPE: {request.mimetype}")
+    raw_data = request.get_data(as_text=True)
+    logging.info(f"RAW BODY: {raw_data}")
+    logging.info("="*50)
+
+    # Handle URL verification challenge
+    if request.is_json and "challenge" in request.get_json():
+        json_data = request.get_json()
+        print(f"Received Slack challenge: {json_data['challenge']}")
+        return jsonify({"challenge": json_data["challenge"]})
+
+    # Handle Slack Events API
+    if request.is_json and "event" in request.get_json():
+        json_data = request.get_json()
+        event = json_data["event"]
+        
+        # Avoid processing bot's own messages
+        if event.get("subtype") == "bot_message":
+            return "", 200
+
+        if event["type"] == "message":
+            user_id = event.get("user")
+            text = event.get("text", "").strip()
+
+            if not user_id or not text:
+                return "", 200
+
+            # Process in a thread and respond immediately
             thread = threading.Thread(target=handle_interactive_conversation, args=(text, user_id))
             thread.daemon = True
             thread.start()
-            return jsonify({"text": "💼 Starting interactive project scoping..."})
+            return "", 200
 
-        # No valid text provided
-        return jsonify({
-            "text": "⚠️ Please provide your business question or use:\n" +
-                   "• `reset` - Start a new conversation\n" +
-                   "• `status` - Check conversation status\n" +
-                   "• `legacy [topic]` - Run direct analysis\n" +
-                   "• `approve` - Approve current proposal"
-        })
+    # Handle slash commands
+    try:
+        data = request.form
+        # Acknowledge the command immediately
+        user_id = data.get('user_id')
+        text = data.get('text', '').strip()
+        
+        # Start processing in a background thread
+        thread = threading.Thread(target=process_slack_command, args=(data,))
+        thread.daemon = True
+        thread.start()
 
+        # Return an immediate response to Slack
+        if text.startswith('approve'):
+             return jsonify({"text": "✅ Approval received! Kicking off the analysis now..."})
+        elif text.startswith('legacy'):
+             return jsonify({"text": f"🚀 Legacy analysis for '{text.replace('legacy', '').strip()}' is starting..."})
+        else:
+             return jsonify({"text": "💼 Your request is being processed. I'll be with you shortly..."})
+        
     except Exception as e:
-        print(f"❌ Error in Slack command: {e}")
-        return jsonify({"text": f"❌ Error: {str(e)}"}), 500
+        logging.error(f"❌ Error in Slack command handler: {e}")
+        return jsonify({"text": f"❌ A critical error occurred: {str(e)}"}), 500
 
 # ===============================
 # Simple test endpoints

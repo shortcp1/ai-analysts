@@ -1647,3 +1647,36 @@ https://api.openai.com/v1/ \
 2025-07-23 18:28:05,373 - DEBUG - Starting new HTTPS connection (1): hooks.slack.com:443
 2025-07-23 18:28:05,483 - DEBUG - https://hooks.slack.com:443 "POST /services/T096X5ZPBHC/B097DCL9Z33/j81EeVDgRtluxVBhmLwyabO0 HTTP/1.1" 200 2
 2025-07-23 18:28:05,484 - INFO - Approval handled for user U096X5ZPKJA. New state: ready_to_execute
+2025-07-23 20:53:24,939 - DEBUG - Using AiohttpTransport...
+2025-07-23 20:53:24,940 - DEBUG - Creating AiohttpTransport...
+2025-07-23 20:53:24,998 - DEBUG - connect_tcp.started host='raw.githubusercontent.com' port=443 local_address=None timeout=5 socket_options=None
+2025-07-23 20:53:25,028 - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x1133a1d30>
+2025-07-23 20:53:25,028 - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x113379f40> server_hostname='raw.githubusercontent.com' timeout=5
+2025-07-23 20:53:25,054 - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x1133c9450>
+2025-07-23 20:53:25,055 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-07-23 20:53:25,055 - DEBUG - send_request_headers.complete
+2025-07-23 20:53:25,055 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-07-23 20:53:25,055 - DEBUG - send_request_body.complete
+2025-07-23 20:53:25,055 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-07-23 20:53:25,077 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Connection', b'keep-alive'), (b'Content-Length', b'29097'), (b'Cache-Control', b'max-age=300'), (b'Content-Security-Policy', b"default-src 'none'; style-src 'unsafe-inline'; sandbox"), (b'Content-Type', b'text/plain; charset=utf-8'), (b'ETag', b'W/"3e8e3d2828310f5cd1e3b627aa5cb4295426839a704a8dbf9c7bd6ae39442ae4"'), (b'Strict-Transport-Security', b'max-age=31536000'), (b'X-Content-Type-Options', b'nosniff'), (b'X-Frame-Options', b'deny'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-GitHub-Request-Id', b'20DF:315690:4868EC:5E0F94:68807ED5'), (b'Content-Encoding', b'gzip'), (b'Accept-Ranges', b'bytes'), (b'Date', b'Thu, 24 Jul 2025 00:53:25 GMT'), (b'Via', b'1.1 varnish'), (b'X-Served-By', b'cache-bos4621-BOS'), (b'X-Cache', b'HIT'), (b'X-Cache-Hits', b'4'), (b'X-Timer', b'S1753318405.135261,VS0,VE0'), (b'Vary', b'Authorization,Accept-Encoding'), (b'Access-Control-Allow-Origin', b'*'), (b'Cross-Origin-Resource-Policy', b'cross-origin'), (b'X-Fastly-Request-ID', b'2f75413674109477a27814bdde3d4193cb298fa7'), (b'Expires', b'Thu, 24 Jul 2025 00:58:25 GMT'), (b'Source-Age', b'196')])
+2025-07-23 20:53:25,078 - INFO - HTTP Request: GET https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json "HTTP/1.1 200 OK"
+2025-07-23 20:53:25,078 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-07-23 20:53:25,086 - DEBUG - receive_response_body.complete
+2025-07-23 20:53:25,086 - DEBUG - response_closed.started
+2025-07-23 20:53:25,086 - DEBUG - response_closed.complete
+2025-07-23 20:53:25,086 - DEBUG - close.started
+2025-07-23 20:53:25,086 - DEBUG - close.complete
+2025-07-23 20:53:25,466 - DEBUG - [Non-Blocking] Unable to import GenericAPILogger - LiteLLM Enterprise Feature - No module named 'litellm_enterprise'
+2025-07-23 20:53:25,622 - DEBUG - [Non-Blocking] Unable to import _ENTERPRISE_ResponsesSessionHandler - LiteLLM Enterprise Feature - No module named 'litellm_enterprise'
+2025-07-23 20:53:25,642 - DEBUG - Using AiohttpTransport...
+2025-07-23 20:53:25,642 - DEBUG - Creating AiohttpTransport...
+2025-07-23 20:53:25,661 - DEBUG - Using AiohttpTransport...
+2025-07-23 20:53:25,661 - DEBUG - Creating AiohttpTransport...
+2025-07-23 20:53:25,678 - DEBUG - Using AiohttpTransport...
+2025-07-23 20:53:25,678 - DEBUG - Creating AiohttpTransport...
+2025-07-23 20:53:26,793 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.86.21:8000
+2025-07-23 20:53:26,793 - INFO - [33mPress CTRL+C to quit[0m
+2025-07-23 20:54:21,628 - DEBUG - Using selector: KqueueSelector
