@@ -7,6 +7,15 @@ from tools.perplexity_search import research_topic
 from tools.hex_analysis import run_data_analysis
 from tools.token_estimator import estimate_costs
 import os
+import json
+
+AGENTS_FILE = "agents_config.json"
+
+def load_agent_config_from_json():
+    if os.path.exists(AGENTS_FILE):
+        with open(AGENTS_FILE, "r") as f:
+            return json.load(f)
+    return {}
 
 # Define custom tools
 class WeaviateSearchTool(BaseTool):
@@ -60,12 +69,19 @@ def create_agents():
         api_key=os.getenv("OPENAI_API_KEY")
     )
     
+    # Load agent configurations from JSON
+    agent_configs = load_agent_config_from_json()
+
+    # Helper to get config or default
+    def get_config(agent_name, key, default_value):
+        return agent_configs.get(agent_name, {}).get(key, default_value)
+
     manager = Agent(
-        role='Engagement Manager',
-        goal='Scope projects clearly, estimate costs, and ensure client satisfaction',
-        backstory="""You are an experienced engagement manager at a top-tier consulting firm.
+        role=get_config('manager', 'role', 'Engagement Manager'),
+        goal=get_config('manager', 'goal', 'Scope projects clearly, estimate costs, and ensure client satisfaction'),
+        backstory=get_config('manager', 'backstory', """You are an experienced engagement manager at a top-tier consulting firm.
         You interview clients, understand their real needs, define clear scope, estimate costs,
-        and ensure projects deliver value. You ask sharp, executive-level questions.""",
+        and ensure projects deliver value. You ask sharp, executive-level questions."""),
         tools=[token_estimator],
         llm=llm,
         verbose=True,
@@ -73,44 +89,44 @@ def create_agents():
     )
     
     consultant = Agent(
-        role='Strategy Consultant',
-        goal='Provide strategic insights and synthesize findings into executive recommendations',
-        backstory="""You are a senior strategy consultant with 10+ years experience.
+        role=get_config('consultant', 'role', 'Strategy Consultant'),
+        goal=get_config('consultant', 'goal', 'Provide strategic insights and synthesize findings into executive recommendations'),
+        backstory=get_config('consultant', 'backstory', """You are a senior strategy consultant with 10+ years experience.
         You excel at structured problem-solving, creating compelling narratives, and
-        presenting complex analysis in clear, actionable recommendations.""",
+        presenting complex analysis in clear, actionable recommendations."""),
         tools=[weaviate_search, weaviate_write],
         llm=llm,
         verbose=True
     )
     
     researcher = Agent(
-        role='Research Analyst',
-        goal='Conduct thorough market research with reliable sources and citations',
-        backstory="""You are a research analyst specializing in market intelligence.
+        role=get_config('researcher', 'role', 'Research Analyst'),
+        goal=get_config('researcher', 'goal', 'Conduct thorough market research with reliable sources and citations'),
+        backstory=get_config('researcher', 'backstory', """You are a research analyst specializing in market intelligence.
         You use multiple sources, validate information, and always provide citations.
-        You excel at finding market data, competitive intelligence, and trends.""",
+        You excel at finding market data, competitive intelligence, and trends."""),
         tools=[perplexity_search, weaviate_write],
         llm=llm,
         verbose=True
     )
     
     data_engineer = Agent(
-        role='Data Engineer',
-        goal='Find, clean, and prepare datasets for analysis',
-        backstory="""You are a data engineer who finds public datasets, cleans data,
+        role=get_config('data_engineer', 'role', 'Data Engineer'),
+        goal=get_config('data_engineer', 'goal', 'Find, clean, and prepare datasets for analysis'),
+        backstory=get_config('data_engineer', 'backstory', """You are a data engineer who finds public datasets, cleans data,
         and prepares it for analysis. You write clean Python code and work with
-        APIs, CSVs, and various data sources.""",
+        APIs, CSVs, and various data sources."""),
         tools=[hex_analysis, weaviate_write],
         llm=llm,
         verbose=True
     )
     
     viz_analyst = Agent(
-        role='Visualization Analyst',
-        goal='Create compelling charts, dashboards, and visual analysis',
-        backstory="""You are a visualization expert who turns data into compelling
+        role=get_config('viz_analyst', 'role', 'Visualization Analyst'),
+        goal=get_config('viz_analyst', 'goal', 'Create compelling charts, dashboards, and visual analysis'),
+        backstory=get_config('viz_analyst', 'backstory', """You are a visualization expert who turns data into compelling
         stories through charts and dashboards. You specialize in executive-friendly
-        visuals that clearly communicate insights.""",
+        visuals that clearly communicate insights."""),
         tools=[hex_analysis, weaviate_write],
         llm=llm,
         verbose=True
