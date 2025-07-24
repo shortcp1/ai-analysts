@@ -38,7 +38,6 @@ def handle_approval(text, user_id):
             final_scope = interactive_manager.get_final_scope(user_id)
             logging.info(f"Deploying team with scope: {final_scope}")
 
-            # Send confirmation that analysis is starting
             send_to_slack(
                 f":hourglass_flowing_sand: *Analysis in Progress...*\n"
                 f"Thanks for your approval, <@{user_id}>! Our team is now analyzing the following scope:\n"
@@ -47,11 +46,9 @@ def handle_approval(text, user_id):
                 user_id
             )
 
-            # Deploy the analyst crew
             crew = AnalystCrew()
-            result = crew.run_remaining_analysis(final_scope, "Scope approved by client")
+            result = crew.run_remaining_analysis(final_scope, "Scope approved by client", user_id)
 
-            # Format and send final report
             formatted_result = (
                 f":tada: *Analysis Complete & Delivered!* :tada:\n"
                 f"<@{user_id}>, here is the full report for your request:\n\n"
@@ -61,12 +58,10 @@ def handle_approval(text, user_id):
             )
             send_to_slack(formatted_result, user_id)
             
-            # Clean up the conversation
             interactive_manager.reset_conversation(user_id)
             logging.info(f"Successfully completed and archived conversation for user {user_id}.")
 
         else:
-            # If not ready to execute, treat as a normal message
             logging.info(f"Handling '{text}' as a continuation for user {user_id}")
             response = interactive_manager.continue_conversation(user_id, text)
             send_to_slack(f"💼 {response}", user_id)
@@ -83,29 +78,16 @@ def handle_interactive_conversation(text, user_id):
         if user_id not in interactive_manager.conversations:
             # Start new conversation
             response = interactive_manager.start_conversation(user_id, text)
-            send_to_slack(f"💼 **Project Scoping Session Started**\n\n{response}")
+            send_to_slack(f"💼 **Project Scoping Session Started**\n\n{response}", user_id)
         else:
             # Continue existing conversation
             response = interactive_manager.continue_conversation(user_id, text)
-            send_to_slack(f"💼 {response}")
+            send_to_slack(f"💼 {response}", user_id)
         
     except Exception as e:
         print(f"❌ Error during conversation: {e}")
         send_to_slack(f"🔥 Conversation error: {e}")
 
-def handle_legacy_analysis_request(text):
-    """Fallback for direct analysis requests (legacy mode)"""
-    try:
-        print(f"Handling legacy analysis request: {text}")
-        crew = AnalystCrew()
-        result = crew.run_scope_analysis(text)
-        
-        # Send result back to slack
-        send_to_slack(f"📊 Quick analysis complete! \n\n{result}")
-        
-    except Exception as e:
-        print(f"❌ Error during analysis: {e}")
-        send_to_slack(f"🔥 Analysis failed: {e}")
 
 # ===============================
 # Slack main endpoint
@@ -120,40 +102,30 @@ def process_slack_command(data):
 
         logging.info(f"Processing command from {user_name} ({user_id}): '{text}'")
 
-        if text.startswith('approve'):
+        if text.lower().startswith('approve'):
             handle_approval(text, user_id)
-        elif text.startswith('reset'):
+        elif text.lower().startswith('reset'):
             interactive_manager.reset_conversation(user_id)
             send_to_slack("🔄 Conversation reset. You can start a new project discussion.", user_id)
-        elif text.startswith('status'):
+        elif text.lower().startswith('status'):
             if user_id in interactive_manager.conversations:
                 state = interactive_manager.conversations[user_id].state.value
                 send_to_slack(f"📊 Current conversation state: {state}", user_id)
             else:
                 send_to_slack("📊 No active conversation. Start by describing your business question.", user_id)
-        elif text.startswith('legacy'):
-            legacy_text = text.replace('legacy', '').strip()
-            if legacy_text:
-                handle_legacy_analysis_request(legacy_text)
-            else:
-                send_to_slack("⚠️ Please provide a topic for legacy analysis.", user_id)
         elif text:
             handle_interactive_conversation(text, user_id)
         else:
             send_to_slack(
-                "⚠️ Please provide your business question or use:\n" +
+                "⚠️ Please provide your business question or use a valid command:\n" +
+                "• `approve` - Approve the current project scope\n" +
                 "• `reset` - Start a new conversation\n" +
-                "• `status` - Check conversation status\n" +
-                "• `legacy [topic]` - Run direct analysis\n" +
-                "• `approve` - Approve current proposal",
+                "• `status` - Check the current conversation status",
                 user_id
             )
     except Exception as e:
-        logging.error(f"❌ Error processing Slack command: {e}")
-        try:
-            send_to_slack(f"❌ An error occurred: {str(e)}", user_id)
-        except Exception as send_e:
-            logging.error(f"❌ Failed to send error message to Slack: {send_e}")
+        logging.error(f"❌ Error processing Slack command: {e}", exc_info=True)
+        send_to_slack(f"❌ An error occurred: {str(e)}", user_id)
 
 @app.route('/slack', methods=['POST'])
 def slack_command():
@@ -210,8 +182,6 @@ def slack_command():
         # Return an immediate response to Slack
         if text.startswith('approve'):
              return jsonify({"text": "✅ Approval received! Kicking off the analysis now..."})
-        elif text.startswith('legacy'):
-             return jsonify({"text": f"🚀 Legacy analysis for '{text.replace('legacy', '').strip()}' is starting..."})
         else:
              return jsonify({"text": "💼 Your request is being processed. I'll be with you shortly..."})
         

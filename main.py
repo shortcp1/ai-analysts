@@ -116,7 +116,7 @@ class AnalystCrew:
         result = crew_output.raw if hasattr(crew_output, "raw") else str(crew_output)
         return result
 
-    def run_remaining_analysis(self, user_request, scoping_context):
+    def run_remaining_analysis(self, user_request, scoping_context, user_id="hex_user"):
         tasks = self.create_tasks(user_request)
         
         # Provide the output of the scoping task as context to the research task
@@ -137,6 +137,12 @@ class AnalystCrew:
         Use live web research and provide citations.
         """
 
+        # Pass user_id to the tools that need it
+        for task in tasks[1:]:
+            for tool in task.agent.tools:
+                if hasattr(tool, 'user_id'):
+                    tool.user_id = user_id
+
         crew = Crew(
             agents=[self.researcher, self.data_engineer, self.viz_analyst, self.consultant],
             tasks=tasks[1:],
@@ -145,6 +151,6 @@ class AnalystCrew:
         )
 
         print("🚀 Starting remaining analysis...")
-        crew_output = crew.kickoff()
+        crew_output = crew.kickoff(inputs={'user_id': user_id})
         result = crew_output.raw if hasattr(crew_output, "raw") else str(crew_output)
         return result

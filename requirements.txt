@@ -1,0 +1,11 @@
+# Core Dependencies
+crewai==0.28.8
+langchain_openai==0.1.1
+python-dotenv==1.0.0
+requests==2.31.0
+flask==2.3.3
+streamlit==1.28.2
+pandas==2.1.1
+
+# Optional: For Weaviate integration
+# weaviate-client==3.24.2

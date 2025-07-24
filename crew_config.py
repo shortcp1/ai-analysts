@@ -43,8 +43,8 @@ class HexTool(BaseTool):
     name: str = "analyze_data"
     description: str = "Run data analysis and create visualizations using Python"
     
-    def _run(self, code: str, description: str = "Analysis") -> str:
-        return str(run_data_analysis(code, description))
+    def _run(self, code: str, description: str = "Analysis", user_id: str = "hex_user") -> str:
+        return str(run_data_analysis(code, description, user_id))
 
 class TokenEstimatorTool(BaseTool):
     name: str = "estimate_costs"
